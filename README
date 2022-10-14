@@ -3,5 +3,6 @@ git init
 git add README.md
 git commit -m "first commit"
 git branch -M main
+git branch branch1
 git remote add origin https://github.com/KSKrishna1410/MLApp.git
 git push -u origin main
