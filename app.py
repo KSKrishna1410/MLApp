@@ -7,12 +7,11 @@ import streamlit.components.v1 as components
 import tempfile
 import os
 import base64
-import openai
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
 from langchain.vectorstores import FAISS, Chroma
 from langchain.chains.question_answering import load_qa_chain, LLMChain
-from langchain.llms import AzureOpenAI
+from langchain.llms import AzureOpenAI,OpenAI
 from langchain.document_loaders import PDFPlumberLoader, PyMuPDFLoader
 from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
 from langchain.prompts import PromptTemplate
@@ -74,12 +73,7 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # Upload PDF and get user's question
 uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
-# upload_button = st.button("Upload")
-user_question = st.text_input("Ask a question:")
-submit_button = st.button("Submit")
-
-if submit_button and uploaded_file is not None and user_question:
-    # Save the uploaded PDF to a temporary file
+if uploaded_file:
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_filename = temp_file.name
         temp_file.write(uploaded_file.read())
@@ -87,9 +81,6 @@ if submit_button and uploaded_file is not None and user_question:
     # Load the PDF and process the documents
     doc_loader = PyMuPDFLoader(temp_filename)
     documents = doc_loader.load()
-
-    # Remove the temporary file
-    os.remove(temp_filename)
 
     text_splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=10000)
     texts = text_splitter.split_documents(documents)
@@ -110,25 +101,31 @@ Helpful Answer:
 """
     QA_CHAIN_PROMPT = PromptTemplate.from_template(template)
     QA_CHAIN_PROMPT2 = PromptTemplate.from_template(template2)
-    embeddings = OpenAIEmbeddings(openai_api_key='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')
+    embeddings = OpenAIEmbeddings(openai_api_key='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')
 
     docsearch = FAISS.from_documents(texts, embeddings)
-    llm = OpenAI(model_name='text-davinci-003', temperature=0, openai_api_key='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')
-    qa_chain = VectorDBQA.from_chain_type(llm=llm, chain_type='stuff', vectorstore=docsearch)
-
+    llm = OpenAI(model_name='text-davinci-003', temperature=0, openai_api_key='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')
+    
     chain = RetrievalQA.from_chain_type(llm, chain_type="stuff", retriever=docsearch.as_retriever(),
                                         chain_type_kwargs={"prompt": QA_CHAIN_PROMPT, })
+   
+    
+user_question = st.text_input("Ask a question:")
+submit_button = st.button("Submit")
+
+if submit_button and user_question:
+    # Save the uploaded PDF to a temporary file
     docs = docsearch.similarity_search(user_question)
     # Get the answer for the user's question
-    result = chain.run({"query": f'do not include unrelated information and answer must be of 3 lines only :{question}',
-                        'input_documents': docs, 'return_only_outputs': True}).replace('', '')
-    result2 = (chain.run({"query": 'Generate 2 questions and helpful answers from given documents', 'input_documents': docs,
+    result = chain.run({"query": f'do not include unrelated information and answer must be of 3 lines only :{user_question}',
+                        'input_documents': docs, 'return_only_outputs': True}).replace('<|im_end|>','')
+    result2 = chain.run({"query": 'Generate 2 questions and helpful answers from given documents', 'input_documents': docs,
                          'return_only_outputs': True, "prompt": QA_CHAIN_PROMPT2})
 
     # Display the answer
-if result and result2:
-    st.header("Response:")
-    st.write(result)
-    st.write(result2)
-else:
-    st.warning("No answer found for the given question.")
+    if result and result2:
+        st.header("Response:")
+        st.write(result)
+        st.write(result2)
+    else:
+        st.warning("No answer found for the given question.")
