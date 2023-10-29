@@ -114,7 +114,7 @@ if submit_button and uploaded_file is not None and user_question:
     # Save the uploaded PDF to a temporary file
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_filename = temp_file.name
-        temp_file.write(uploaded_file.read)
+        temp_file.write(uploaded_file.read())
 
     # Extract and process text (this will be cached)
     extracted_text, result = extract_and_process_text(temp_filename, OPENAI_API_KEY, user_question)
