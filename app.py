@@ -101,10 +101,10 @@ Helpful Answer:
 """
     QA_CHAIN_PROMPT = PromptTemplate.from_template(template)
     QA_CHAIN_PROMPT2 = PromptTemplate.from_template(template2)
-    embeddings = OpenAIEmbeddings(openai_api_key='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')
+    embeddings = OpenAIEmbeddings(openai_api_key='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')
 
     docsearch = FAISS.from_documents(texts, embeddings)
-    llm = OpenAI(model_name='text-davinci-003', temperature=0, openai_api_key='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')
+    llm = OpenAI(model_name='text-davinci-003', temperature=0, openai_api_key='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')
     
     chain = RetrievalQA.from_chain_type(llm, chain_type="stuff", retriever=docsearch.as_retriever(),
                                         chain_type_kwargs={"prompt": QA_CHAIN_PROMPT, })
