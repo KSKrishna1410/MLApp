@@ -8,4 +8,5 @@ tiktoken
 pysqlite3-binary
 PyMuPDF
 thread6
+functools
 
