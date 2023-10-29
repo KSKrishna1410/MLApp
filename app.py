@@ -126,7 +126,7 @@ Helpful Answer:
                          'return_only_outputs': True, "prompt": QA_CHAIN_PROMPT2})
 
     # Display the answer
-    if result:
+    if result  == True:   
         st.header("Response:")
         st.write(result)
         st.write(result2)
