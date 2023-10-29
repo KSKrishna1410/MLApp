@@ -6,6 +6,6 @@ openai
 chromadb
 tiktoken
 pysqlite3-binary
-fitz
+PyMuPDF
 threading
 
