@@ -1,15 +1,24 @@
+__import__('pysqlite3')
+import sys
+sys.modules['sqlite3'] = sys.modules.pop('pysqlite3')
+
 import streamlit as st
 import streamlit.components.v1 as components
-from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
-from langchain.text_splitter import CharacterTextSplitter
-from langchain.document_loaders import PDFPlumberLoader
-from langchain import OpenAI, VectorDBQA
 import tempfile
 import os
 import base64
-import fitz
-import threading
+import openai
+from langchain.embeddings.openai import OpenAIEmbeddings
+from langchain.text_splitter import CharacterTextSplitter,RecursiveCharacterTextSplitter
+from langchain.vectorstores import FAISS,Chroma
+from langchain.chains.question_answering import load_qa_chain,LLMChain
+from langchain.llms import AzureOpenAI
+from langchain.document_loaders import PDFPlumberLoader,PyMuPDFLoader
+from langchain.chains import RetrievalQA,RetrievalQAWithSourcesChain
+from langchain.prompts import PromptTemplate
+from langchain.vectorstores.base import VectorStoreRetriever
+from langchain import OpenAI, VectorDBQA
+from PIL import Image
 
 # Your OpenAI API key
 OPENAI_API_KEY = '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'
@@ -53,7 +62,6 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-
 hide_st_style = """
             <style>
             #MainMenu {visibility: hidden;}
@@ -62,62 +70,83 @@ hide_st_style = """
             .css-1rs6os {visibility: hidden;}
             .css-17ziqus {visibility: hidden;}
             """
-st.markdown(hide_st_style, unsafe_allow_html=True)
-
-tex_lock = threading.Lock()
-text = ""
-
-def extract_text_from_pdf(pdf_path):
-    global text
-    pdf_document = fitz.open(pdf_path)
-    for page_number in range(pdf_document.page_count):
-        page = pdf_document[page_number]
-        page_text = page.get_text("text", flags=quality)
-        with tex_lock:
-            text += f'Page {page_number + 1}:\n{page_text}\n'
-    pdf_document.close()
-    return text
-
-quality = 1
+st.markdown(hide_st_style,unsafe_allow_html=True)
 
 # Upload PDF and get user's question
 uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
+# upload_button = st.button("Upload")
 user_question = st.text_input("Ask a question:")
 submit_button = st.button("Submit")
+
+# if uploaded_file is not None:
+#     print('uploading pdf')
+#     # Save the uploaded PDF to a temporary file
+#     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+#         temp_filename = temp_file.name
+#         temp_file.write(uploaded_file.read())
+
+#     # Load the PDF and process the documents
+#     doc_loader = PDFPlumberLoader(temp_filename)
+#     documents = doc_loader.load()
+
+#     # Remove the temporary file
+#     os.remove(temp_filename)
+
+#     text_splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=1000)
+#     texts = text_splitter.split_documents(documents)
+
+#     # Create embeddings and vector search
+#     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
+#     docsearch = Chroma.from_documents(texts, embeddings)
 
 if submit_button and uploaded_file is not None and user_question:
     # Save the uploaded PDF to a temporary file
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_filename = temp_file.name
         temp_file.write(uploaded_file.read())
-    
-    # Extract text from the PDF
-    extracted_text = extract_text_from_pdf(temp_filename)
 
     # Load the PDF and process the documents
-    doc_loader = PDFPlumberLoader(temp_filename)
+    doc_loader = PyMuPDFLoader(temp_filename)
     documents = doc_loader.load()
 
     # Remove the temporary file
     os.remove(temp_filename)
 
-    text_splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=1000)
+    text_splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=10000)
     texts = text_splitter.split_documents(documents)
 
-    # Create embeddings and vector search
-    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-    docsearch = Chroma.from_documents(texts, embeddings)
+    template = """Use the following pieces of context to answer the question at the end. It is important to read and understand all the pieces of context provided, as they will help you answer the questions accurately.
+If you are unsure about any part of the document, it is best to admit that you don't know and seek clarification. Making up an answer could lead to misunderstandings and legal issues later on. 
+and keep the answer as concise as possible.
+{context}
+Question: {question}
+Helpful Answer:
+Question: {question}
+Helpful Answer:
+"""
+    template2="""Question: {question}
+Helpful Answer:
+Question: {question}
+Helpful Answer:
+"""
+    QA_CHAIN_PROMPT = PromptTemplate.from_template(template)
+    QA_CHAIN_PROMPT2 = PromptTemplate.from_template(template2)
+    embeddings = OpenAIEmbeddings(openai_api_key='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')
+docsearch = FAISS.from_documents(texts, embeddings)
 
-    # Initialize the OpenAI model and QA chain
-    llm = OpenAI(model_name='text-davinci-003', temperature=0, openai_api_key=OPENAI_API_KEY)
+    llm = OpenAI(model_name='text-davinci-003', temperature=0, openai_api_key='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')
     qa_chain = VectorDBQA.from_chain_type(llm=llm, chain_type='stuff', vectorstore=docsearch)
 
+    chain = RetrievalQA.from_chain_type(llm,chain_type="stuff",retriever=docsearch.as_retriever(),chain_type_kwargs={"prompt": QA_CHAIN_PROMPT,})
+    docs = docsearch.similarity_search(user_question)
     # Get the answer for the user's question
-    result = qa_chain({'query': user_question}, return_only_outputs=True)
+    result = chain.run({"query":f'do not include unrelated information and answer must be of 3 lines only :{question}','input_documents':docs,'return_only_outputs':True}).replace('<|im_end|>','') 
+    result2 = (chain.run({"query":'Generate 2 questions and helpful answers from given documents','input_documents':docs,'return_only_outputs':True,"prompt": QA_CHAIN_PROMPT2})
 
     # Display the answer
     if result:
         st.header("Response:")
-        st.write(result['result'])
+        st.write(result)
+	st.write(result2)
     else:
         st.warning("No answer found for the given question.")
