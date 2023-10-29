@@ -6,7 +6,6 @@ openai
 chromadb
 tiktoken
 pysqlite3-binary
-PyMuPDF
-thread6
+faiss-gpu
 
 
