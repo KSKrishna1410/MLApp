@@ -12,7 +12,7 @@ from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTex
 from langchain.vectorstores import FAISS, Chroma
 from langchain.chains.question_answering import load_qa_chain, LLMChain
 from langchain.llms import AzureOpenAI,OpenAI
-from langchain.document_loaders import PDFPlumberLoader, PyMuPDFLoader
+from langchain.document_loaders import PDFPlumberLoader,PyMuPDFLoader
 from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
 from langchain.prompts import PromptTemplate
 from langchain.vectorstores.base import VectorStoreRetriever
