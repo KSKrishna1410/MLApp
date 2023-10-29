@@ -80,6 +80,31 @@ def extract_text_from_pdf(pdf_path):
 
 quality = 1
 
+@st.cache  # Cache the text extraction function
+def extract_and_process_text(pdf_path, openai_api_key, user_question):
+    # Extract text from the PDF
+    extracted_text = extract_text_from_pdf(pdf_path)
+
+    # Load the PDF and process the documents
+    doc_loader = PDFPlumberLoader(pdf_path)
+    documents = doc_loader.load()
+
+    text_splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=1000)
+    texts = text_splitter.split_documents(documents)
+
+    # Create embeddings and vector search
+    embeddings = OpenAIEmbeddings(openai_api_key=openai_api_key)
+    docsearch = Chroma.from_documents(texts, embeddings)
+
+    # Initialize the OpenAI model and QA chain
+    llm = OpenAI(model_name='text-davinci-003', temperature=0, openai_api_key=openai_api_key)
+    qa_chain = VectorDBQA.from_chain_type(llm=llm, chain_type='stuff', vectorstore=docsearch)
+
+    # Get the answer for the user's question
+    result = qa_chain({'query': user_question}, return_only_outputs=True)
+
+    return extracted_text, result
+
 # Upload PDF and get user's question
 uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
 user_question = st.text_input("Ask a question:")
@@ -89,35 +114,14 @@ if submit_button and uploaded_file is not None and user_question:
     # Save the uploaded PDF to a temporary file
     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
         temp_filename = temp_file.name
-        temp_file.write(uploaded_file.read())
-    
-    # Extract text from the PDF
-    extracted_text = extract_text_from_pdf(temp_filename)
+        temp_file.write(uploaded_file.read)
 
-    # Load the PDF and process the documents
-    doc_loader = PDFPlumberLoader(temp_filename)
-    documents = doc_loader.load()
-
-    # Remove the temporary file
-    os.remove(temp_filename)
-
-    text_splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=1000)
-    texts = text_splitter.split_documents(documents)
-
-    # Create embeddings and vector search
-    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-    docsearch = Chroma.from_documents(texts, embeddings)
-
-    # Initialize the OpenAI model and QA chain
-    llm = OpenAI(model_name='text-davinci-003', temperature=0, openai_api_key=OPENAI_API_KEY)
-    qa_chain = VectorDBQA.from_chain_type(llm=llm, chain_type='stuff', vectorstore=docsearch)
-
-    # Get the answer for the user's question
-    result = qa_chain({'query': user_question}, return_only_outputs=True)
+    # Extract and process text (this will be cached)
+    extracted_text, result = extract_and_process_text(temp_filename, OPENAI_API_KEY, user_question)
 
     # Display the answer
     if result:
         st.header("Response:")
-        st.write(result['result'])
+        st.write(result)
     else:
         st.warning("No answer found for the given question.")
