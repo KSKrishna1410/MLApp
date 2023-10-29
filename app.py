@@ -80,7 +80,7 @@ def extract_text_from_pdf(pdf_path):
 
 quality = 1
 
-@st.cache  # Cache the text extraction function
+@lru_cache(maxsize=None)   # Cache the text extraction function
 def extract_and_process_text(pdf_path, openai_api_key, user_question):
     # Extract text from the PDF
     extracted_text = extract_text_from_pdf(pdf_path)
