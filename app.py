@@ -20,7 +20,7 @@ from langchain import OpenAI, VectorDBQA
 from PIL import Image
 
 # Your OpenAI API key
-OPENAI_API_KEY = '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'
+OPENAI_API_KEY = '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'
 
 # Path to the logo image in your repository
 logo_image_url = "30188-Sail Analytics-Logo-SH_02 (1).png"
@@ -101,10 +101,10 @@ Helpful Answer:
 """
     QA_CHAIN_PROMPT = PromptTemplate.from_template(template)
     QA_CHAIN_PROMPT2 = PromptTemplate.from_template(template2)
-    embeddings = OpenAIEmbeddings(openai_api_key='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')
+    embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
 
     docsearch = FAISS.from_documents(texts, embeddings)
-    llm = OpenAI(model_name='text-davinci-003', temperature=0, openai_api_key='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')
+    llm = OpenAI(model_name='text-davinci-003', temperature=0, openai_api_key=OPENAI_API_KEY)
     
     chain = RetrievalQA.from_chain_type(llm, chain_type="stuff", retriever=docsearch.as_retriever(),
                                         chain_type_kwargs={"prompt": QA_CHAIN_PROMPT, })
