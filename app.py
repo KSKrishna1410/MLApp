@@ -126,9 +126,9 @@ Helpful Answer:
                          'return_only_outputs': True, "prompt": QA_CHAIN_PROMPT2})
 
     # Display the answer
-    if result  == True:   
-        st.header("Response:")
-        st.write(result)
-        st.write(result2)
-    else:
-        st.warning("No answer found for the given question.")
+if result:
+    st.header("Response:")
+    st.write(result)
+st.write(result2)
+else:
+    st.warning("No answer found for the given question.")
