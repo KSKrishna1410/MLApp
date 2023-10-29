@@ -12,7 +12,7 @@ from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTex
 from langchain.vectorstores import FAISS, Chroma
 from langchain.chains.question_answering import load_qa_chain, LLMChain
 from langchain.llms import AzureOpenAI,OpenAI
-from langchain.document_loaders import PDFPlumberLoader,PyMuPDFLoader
+from langchain.document_loaders import PyMuPDFLoader as PL
 from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
 from langchain.prompts import PromptTemplate
 from langchain.vectorstores.base import VectorStoreRetriever
@@ -79,7 +79,7 @@ if uploaded_file:
         temp_file.write(uploaded_file.read())
 
     # Load the PDF and process the documents
-    doc_loader = PyMuPDFLoader(temp_filename)
+    doc_loader = PL(temp_filename)
     documents = doc_loader.load()
 
     text_splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=10000)
