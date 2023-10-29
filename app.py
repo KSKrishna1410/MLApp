@@ -9,12 +9,12 @@ import os
 import base64
 import openai
 from langchain.embeddings.openai import OpenAIEmbeddings
-from langchain.text_splitter import CharacterTextSplitter,RecursiveCharacterTextSplitter
-from langchain.vectorstores import FAISS,Chroma
-from langchain.chains.question_answering import load_qa_chain,LLMChain
+from langchain.text_splitter import CharacterTextSplitter, RecursiveCharacterTextSplitter
+from langchain.vectorstores import FAISS, Chroma
+from langchain.chains.question_answering import load_qa_chain, LLMChain
 from langchain.llms import AzureOpenAI
-from langchain.document_loaders import PDFPlumberLoader,PyMuPDFLoader
-from langchain.chains import RetrievalQA,RetrievalQAWithSourcesChain
+from langchain.document_loaders import PDFPlumberLoader, PyMuPDFLoader
+from langchain.chains import RetrievalQA, RetrievalQAWithSourcesChain
 from langchain.prompts import PromptTemplate
 from langchain.vectorstores.base import VectorStoreRetriever
 from langchain import OpenAI, VectorDBQA
@@ -70,34 +70,13 @@ hide_st_style = """
             .css-1rs6os {visibility: hidden;}
             .css-17ziqus {visibility: hidden;}
             """
-st.markdown(hide_st_style,unsafe_allow_html=True)
+st.markdown(hide_st_style, unsafe_allow_html=True)
 
 # Upload PDF and get user's question
 uploaded_file = st.file_uploader("Upload a PDF", type=["pdf"])
 # upload_button = st.button("Upload")
 user_question = st.text_input("Ask a question:")
 submit_button = st.button("Submit")
-
-# if uploaded_file is not None:
-#     print('uploading pdf')
-#     # Save the uploaded PDF to a temporary file
-#     with tempfile.NamedTemporaryFile(delete=False) as temp_file:
-#         temp_filename = temp_file.name
-#         temp_file.write(uploaded_file.read())
-
-#     # Load the PDF and process the documents
-#     doc_loader = PDFPlumberLoader(temp_filename)
-#     documents = doc_loader.load()
-
-#     # Remove the temporary file
-#     os.remove(temp_filename)
-
-#     text_splitter = CharacterTextSplitter(chunk_overlap=0, chunk_size=1000)
-#     texts = text_splitter.split_documents(documents)
-
-#     # Create embeddings and vector search
-#     embeddings = OpenAIEmbeddings(openai_api_key=OPENAI_API_KEY)
-#     docsearch = Chroma.from_documents(texts, embeddings)
 
 if submit_button and uploaded_file is not None and user_question:
     # Save the uploaded PDF to a temporary file
@@ -124,7 +103,7 @@ Helpful Answer:
 Question: {question}
 Helpful Answer:
 """
-    template2="""Question: {question}
+    template2 = """Question: {question}
 Helpful Answer:
 Question: {question}
 Helpful Answer:
@@ -132,21 +111,24 @@ Helpful Answer:
     QA_CHAIN_PROMPT = PromptTemplate.from_template(template)
     QA_CHAIN_PROMPT2 = PromptTemplate.from_template(template2)
     embeddings = OpenAIEmbeddings(openai_api_key='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')
-docsearch = FAISS.from_documents(texts, embeddings)
 
+    docsearch = FAISS.from_documents(texts, embeddings)
     llm = OpenAI(model_name='text-davinci-003', temperature=0, openai_api_key='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')
     qa_chain = VectorDBQA.from_chain_type(llm=llm, chain_type='stuff', vectorstore=docsearch)
 
-    chain = RetrievalQA.from_chain_type(llm,chain_type="stuff",retriever=docsearch.as_retriever(),chain_type_kwargs={"prompt": QA_CHAIN_PROMPT,})
+    chain = RetrievalQA.from_chain_type(llm, chain_type="stuff", retriever=docsearch.as_retriever(),
+                                        chain_type_kwargs={"prompt": QA_CHAIN_PROMPT, })
     docs = docsearch.similarity_search(user_question)
     # Get the answer for the user's question
-    result = chain.run({"query":f'do not include unrelated information and answer must be of 3 lines only :{question}','input_documents':docs,'return_only_outputs':True}).replace('<|im_end|>','') 
-    result2 = (chain.run({"query":'Generate 2 questions and helpful answers from given documents','input_documents':docs,'return_only_outputs':True,"prompt": QA_CHAIN_PROMPT2})
+    result = chain.run({"query": f'do not include unrelated information and answer must be of 3 lines only :{question}',
+                        'input_documents': docs, 'return_only_outputs': True}).replace('', '')
+    result2 = (chain.run({"query": 'Generate 2 questions and helpful answers from given documents', 'input_documents': docs,
+                         'return_only_outputs': True, "prompt": QA_CHAIN_PROMPT2})
 
     # Display the answer
     if result:
         st.header("Response:")
         st.write(result)
-	st.write(result2)
+        st.write(result2)
     else:
         st.warning("No answer found for the given question.")
