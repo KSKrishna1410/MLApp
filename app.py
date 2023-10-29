@@ -20,7 +20,7 @@ from langchain import OpenAI, VectorDBQA
 from PIL import Image
 
 # Your OpenAI API key
-OPENAI_API_KEY = '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'
+OPENAI_API_KEY = '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'
 
 # Path to the logo image in your repository
 logo_image_url = "30188-Sail Analytics-Logo-SH_02 (1).png"
